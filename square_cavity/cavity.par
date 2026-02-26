@@ -22,9 +22,9 @@ userSections = CASEDATA
   polynomialOrder = 3
   dt = targetCFL=2.0 + initial=1e-6
   stopAt = endTime
-  endTime = 0.8
+  endTime = 1.0
   checkpointControl = simulationTime
-  checkpointInterval = 0.8
+  checkpointInterval = 1.0
   scalars = temperature
 
 [FLUID PRESSURE]
