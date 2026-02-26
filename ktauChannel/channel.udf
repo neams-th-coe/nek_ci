@@ -1,8 +1,4 @@
-//
-// nekRS User Defined File
-//
-#include "udf.hpp"
-#include "plugins/RANSktau.hpp"
+#include "RANSktau.hpp"
 
 #include "ci.inc"
 
@@ -10,23 +6,39 @@ static dfloat rho, mueLam;
 
 #ifdef __okl__
 
-#include "channel.oudf"
+@kernel void scalarScaledAdd(const dlong N,
+                             const dfloat a,
+                             const dfloat b,
+                             @ restrict const dfloat *X,
+                             @ restrict dfloat *Y)
+{
+  for (dlong n = 0; n < N; ++n; @tile(256, @outer, @inner)) {
+    if (n < N) {
+      Y[n] = a + b * X[n];
+    }
+  }
+}
+
+void udfDirichlet(bcData *bc)
+{
+  bc->sScalar = 0;
+}
 
 #endif
 
-void extractLine(nrs_t *nrs, double time, int tstep)
+void extractLine(nrs_t *nrs, double time)
 {
-  const auto np = (platform->comm.mpiRank == 0) ? 200 : 0;
+  const auto np = (platform->comm.mpiRank() == 0) ? 200 : 0;
   const auto offset = np;
 
   static pointInterpolation_t *interpolator = nullptr;
   static std::vector<dfloat> xp, yp, zp;
-  static occa::memory o_Up;
+  static deviceMemory<dfloat> o_Up;
 
   if (!interpolator) {
     auto mesh = nrs->meshV;
-    const auto yMin = platform->linAlg->min(mesh->Nlocal, mesh->o_y, platform->comm.mpiComm);
-    const auto yMax = platform->linAlg->max(mesh->Nlocal, mesh->o_y, platform->comm.mpiComm);
+    const auto yMin = platform->linAlg->min(mesh->Nlocal, mesh->o_y, platform->comm.mpiComm());
+    const auto yMax = platform->linAlg->max(mesh->Nlocal, mesh->o_y, platform->comm.mpiComm());
 
     if (np) {
       const auto x0 = 7.0;
@@ -47,19 +59,19 @@ void extractLine(nrs_t *nrs, double time, int tstep)
       xp.push_back(x0);
       yp.push_back(yMax);
       zp.push_back(z0);
-      o_Up = platform->device.malloc<dfloat>(nrs->NVfields * offset);
+      o_Up.resize(mesh->dim * offset);
     }
 
-    interpolator = new pointInterpolation_t(nrs);
-    interpolator->setPoints(np, xp.data(), yp.data(), zp.data());
+    interpolator = new pointInterpolation_t(mesh, platform->comm.mpiComm());
+    interpolator->setPoints(xp, yp, zp);
     interpolator->find();
   }
 
-  interpolator->eval(nrs->NVfields, nrs->fieldOffset, nrs->o_U, offset, o_Up);
+  interpolator->eval(nrs->meshV->dim, nrs->fluid->fieldOffset, nrs->fluid->o_U, offset, o_Up);
 
-  if (platform->comm.mpiRank == 0) {
-    std::vector<dfloat> Up(nrs->NVfields * np);
-    o_Up.copyTo(Up.data());
+  if (platform->comm.mpiRank() == 0) {
+    std::vector<dfloat> Up(nrs->meshV->dim * np);
+    o_Up.copyTo(Up);
 
     std::ofstream f("profile.dat", std::ios::app);
     for (int i = 0; i < np; i++) {
@@ -70,40 +82,44 @@ void extractLine(nrs_t *nrs, double time, int tstep)
   }
 }
 
-void userq(nrs_t *nrs, double time, occa::memory o_S, occa::memory o_FS)
+void userq(double time)
 {
-  mesh_t *mesh = nrs->meshV;
-  cds_t *cds = nrs->cds;
-
   RANSktau::updateSourceTerms();
 }
 
-void uservp(nrs_t *nrs,
-            double time,
-            occa::memory o_U,
-            occa::memory o_S,
-            occa::memory o_UProp,
-            occa::memory o_SProp)
+void uservp(double time)
 {
-  mesh_t *mesh = nrs->meshV;
-  cds_t *cds = nrs->cds;
+  auto mesh = nrs->meshV;
+  auto& scalar = nrs->scalar;
 
   RANSktau::updateProperties();
 
   dfloat conductivity;
   platform->options.getArgs("SCALAR00 DIFFUSIVITY", conductivity);
-  const dfloat Pr_t = 0.7;
-  occa::memory o_mue_t = RANSktau::o_mue_t();
-  occa::memory o_temp_mue = cds->o_diff + 0 * cds->fieldOffset[0];
-  scalarScaledAdd(mesh->Nlocal, conductivity, 1 / Pr_t, o_mue_t, o_temp_mue);
+  const dfloat Pr_t = 0.85;
+  scalarScaledAdd(mesh->Nlocal, conductivity, 1 / Pr_t, RANSktau::o_mue_t(), scalar->o_diffusionCoeff("temperature"));
+
+#if 0
+  if (platform->verbose()) {
+    const dfloat debugNorm = platform->linAlg->weightedNorm2Many(mesh->Nlocal,
+                                                                 1,
+                                                                 nrs->fluid->fieldOffset,
+                                                                 mesh->ogs->o_invDegree,
+                                                                 o_mue_t,
+                                                                 platform->comm.mpiComm());
+    if (platform->comm.mpiRank() == 0) {
+      printf("mue_t norm: %.15e\n", debugNorm);
+    }                                   
+  }
+#endif
 }
 
-void UDF_LoadKernels(occa::properties& kernelInfo)
+void UDF_LoadKernels(deviceKernelProperties& kernelInfo)
 {
 #if 0
   {
     auto props = kernelInfo;
-    props["defines/p_sigma_k"] = 0.6;
+    props.define("p_sigma_k") = 0.6;
     RANSktau::buildKernel(props);
   }
 #endif
@@ -117,27 +133,43 @@ void UDF_Setup0(MPI_Comm comm, setupAide &options)
   }
 }
 
-void UDF_Setup(nrs_t *nrs)
+void UDF_Setup()
 {
-  mesh_t *mesh = nrs->meshV;
-  cds_t *cds = nrs->cds;
+  nrs->userProperties = &uservp;
+  nrs->userSource = &userq;
 
-  udf.properties = &uservp;
-  udf.sEqnSource = &userq;
+  auto mesh = nrs->meshV;
 
-  const int scalarFieldStart = 1;
-  platform->options.getArgs("VISCOSITY", mueLam);
-  platform->options.getArgs("DENSITY", rho);
+  std::vector<dfloat> U(mesh->dim * nrs->fluid->fieldOffset, 0.0);
+  std::vector<dfloat> s0(mesh->Nlocal, 0.0);
+  std::vector<dfloat> k(mesh->Nlocal, 0.0);
+  std::vector<dfloat> tau(mesh->Nlocal, 0.0);
 
-  RANSktau::setup(nrs, mueLam, rho, scalarFieldStart);
+  if (platform->options.getArgs("RESTART FILE NAME").empty()) {
+    auto& scalar = nrs->scalar;
+    for(int n = 0; n < mesh->Nlocal; n++) {
+      U[n + 0 * nrs->fluid->fieldOffset] = 1;
+      U[n + 1 * nrs->fluid->fieldOffset] = 0;
+      U[n + 2 * nrs->fluid->fieldOffset] = 0;
+      s0[n] = 1.0;
+      k[n] = 0.01; 
+      tau[n] = 0.1;
+    }
+    nrs->fluid->o_U.copyFrom(U.data(), U.size());
+    nrs->scalar->o_solution("temperature").copyFrom(s0.data(), s0.size()); 
+    nrs->scalar->o_solution("k").copyFrom(k.data(), k.size()); 
+    nrs->scalar->o_solution("tau").copyFrom(tau.data(), tau.size()); 
+  }
+
+  RANSktau::setup(nrs->scalar->nameToIndex.find("k")->second);
 }
 
-void UDF_ExecuteStep(nrs_t *nrs, double time, int tstep)
+void UDF_ExecuteStep(double time, int tstep)
 {
   if (ciMode) {
     ciTestErrors(nrs, time, tstep);
   }
-  if (nrs->isOutputStep) {
-    extractLine(nrs, time, tstep);
+  if (nrs->checkpointStep) {
+    extractLine(nrs, time);
   }
 }
