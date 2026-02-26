@@ -3,7 +3,6 @@ mesh_width = 0.0193145
 [Mesh]
   type = NekRSMesh
   volume = true
-  order=FIRST
 []
 
 [Problem]

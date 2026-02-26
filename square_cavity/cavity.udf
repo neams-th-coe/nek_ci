@@ -1,4 +1,8 @@
-#include "udf.hpp"
+#ifdef __okl__
+
+#include "cavity.oudf"
+
+#endif
 
 static dfloat T_cold;
 static dfloat T_hot;
@@ -6,54 +10,45 @@ static dfloat Ri;
 
 static occa::kernel buoyancyKernel;
 
-void custom_source(nrs_t * nrs, dfloat time, occa::memory o_U, occa::memory o_FU)
+void custom_source(dfloat time)
 {
   auto mesh = nrs->meshV;
 
   //what momentum equation we want to add gravity to
   int component = 2;
-  
-  buoyancyKernel(mesh->Nelements, component * nrs->fieldOffset,  nrs->cds->o_S, o_FU);
+  buoyancyKernel(mesh->Nelements, component * nrs->fieldOffset,  nrs->scalar->o_S, nrs->fluid->o_EXT);
 }
 
-
-void UDF_LoadKernels(occa::properties & kernelInfo)
+void UDF_Setup0(MPI_Comm comm, setupAide &options)
 {
   //get parameters from par file
   platform->par->extract("casedata", "T_cold", T_cold);
   platform->par->extract("casedata", "T_hot", T_hot);
   platform->par->extract("casedata", "Ri", Ri);
+}
 
+void UDF_LoadKernels(deviceKernelProperties & kernelInfo)
+{
   //send parameter to device
-  kernelInfo["defines/p_T_cold"] = T_cold;
-  kernelInfo["defines/p_T_hot"] = T_hot;
-  kernelInfo["defines/p_Ri"] = Ri;
-  
+  kernelInfo.define("p_T_cold") = T_cold;
+  kernelInfo.define("p_T_hot") = T_hot;
+  kernelInfo.define("p_Ri") = Ri;
   buoyancyKernel = oudfBuildKernel(kernelInfo, "buoyancy");
 }
 
-
-void UDF_Setup(nrs_t *nrs)
+void UDF_Setup()
 {
   auto mesh = nrs->meshV;
-    
-  //set initial conditions
-  int n_gll_points = mesh->Np * mesh->Nelements;
-  for (int n = 0; n < n_gll_points; ++n)
-  {
-    nrs->U[n + 0 * nrs->fieldOffset] = 0; // x-velocity
-    nrs->U[n + 1 * nrs->fieldOffset] = 0; // y-velocity
-    nrs->U[n + 2 * nrs->fieldOffset] = 0; // z-velocity
 
-    nrs->P[n] = 0.0; // pressure
+  // arbitrary array on the host where we will fill some initial data, which
+  // we then copy to device
+  std::vector<dfloat> temp(mesh->Nlocal, T_cold);
+  nrs->scalar->o_solution("temperature").copyFrom(temp.data(), temp.size());
 
-    nrs->cds->S[n + 0 * nrs->fieldOffset] = T_cold; // temperature
-  }
-  
   //function pointer to add buyoancy term
-  udf.uEqnSource = &custom_source;
+  nrs->userSource = &custom_source;
 }
 
-void UDF_ExecuteStep(nrs_t *nrs, double time, int tstep)
+void UDF_ExecuteStep(double time, int tstep)
 {
 }

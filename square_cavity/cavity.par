@@ -13,6 +13,8 @@
 # Ri = Ra * Pr / Pe^2 = 0.71 * Ra
 # --------------------------------------
 
+userSections = CASEDATA
+
 [OCCA]
   backend = CPU
 
@@ -20,25 +22,25 @@
   polynomialOrder = 3
   dt = targetCFL=2.0 + initial=1e-6
   stopAt = endTime
-  endTime = 1
-  writeControl = simulationTime
-  writeInterval = 1
+  endTime = 0.8
+  checkpointControl = simulationTime
+  checkpointInterval = 0.8
+  scalars = temperature
 
-
-[PRESSURE]
+[FLUID PRESSURE]
   residualTol = 1e-06
 
-[VELOCITY]
-  boundaryTypeMap = w, w, symy, symy, w, w
+[FLUID VELOCITY]
+  boundaryTypeMap = zeroDirichlet, zeroDirichlet, zeroDirichletY/zeroNeumann, zeroDirichletY/zeroNeumann, zeroDirichlet, zeroDirichlet
   residualTol = 1e-07
   density = 1
   viscosity = -1.4085
 
-[TEMPERATURE]
-  boundaryTypeMap = t, t, I, I, I, I  
+[SCALAR TEMPERATURE]
+  boundaryTypeMap = udfDirichlet, udfDirichlet, zeroNeumann, zeroNeumann, zeroNeumann, zeroNeumann
   residualTol = 1e-07
-  rhoCp = 1
-  conductivity = -1
+  transportCoeff = 1
+  diffusionCoeff = -1
 
 [CASEDATA]
   Pr = 0.71

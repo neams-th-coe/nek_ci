@@ -1,10 +1,12 @@
-void scalarDirichletConditions(bcData *bc)
+void udfDirichlet(bcData *bc)
 {
-  if(bc->id == 1)
-    bc->s = p_T_hot;
-    
-  if(bc->id == 2)
-    bc->s = p_T_cold;
+  if (isField("scalar temperature"))
+  {
+    if (bc->id == 1)
+      bc->sScalar = p_T_hot;
+    if (bc->id == 2)
+      bc->sScalar = p_T_cold;
+  }
 }
 
 @kernel void buoyancy(const dlong Nelements, const dlong offset, @restrict const dfloat* temp, @restrict dfloat* source)
