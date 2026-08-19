@@ -1,0 +1,13 @@
+      real p_peclet
+      real p_heat_source
+      real p_solid_conductivity_ratio
+      real p_solid_height_ratio
+      real p_solid_heat_capacity_ratio
+      real p_velocity_coefficient
+
+      common /casevars/ p_peclet,
+     $                  p_heat_source,
+     $                  p_solid_conductivity_ratio,
+     $                  p_solid_height_ratio,
+     $                  p_solid_heat_capacity_ratio,
+     $                  p_velocity_coefficient

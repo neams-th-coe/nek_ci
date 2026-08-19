@@ -1,0 +1,311 @@
+c-----------------------------------------------------------------------
+      subroutine usrsetvert(glo_num,nel,nx,ny,nz) ! to modify glo_num
+      integer*8 glo_num(1)
+
+      ! kludge for periodic bc in z
+      nxy  = nx*ny
+      nxyz = nx*ny*nz
+      do iel = 1,nel
+         ioff = nxyz*(iel-1)
+         do ixy = 1,nxy
+            glo_num(ioff + nxy*(nz-1) + ixy) = glo_num(ioff + ixy)
+         enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2()  ! This routine to modify mesh coordinates
+      include 'SIZE'
+      include 'TOTAL'
+
+      ntot = lx1*ly1*lz1*nelt
+
+      call cmult(xm1,1./4.,ntot)
+      call cmult(ym1,1./4.,ntot)
+
+      do ie=1,nelt
+        do ifc=1,2*ndim
+          id_face = bc(5,ifc,ie,1)
+          if(id_face.eq.31) then
+            cbc(ifc,ie,1) = 'v  '
+            cbc(ifc,ie,2) = 't  '
+            cbc(ifc,ie,3) = 't  '
+            boundaryID(ifc,ie) = 1
+            boundaryIDt(ifc,ie) = 1
+          elseif(id_face.eq.32) then
+            cbc(ifc,ie,1) = 'O  '
+            cbc(ifc,ie,2) = 'I  '
+            cbc(ifc,ie,3) = 'I  '
+            boundaryID(ifc,ie) = 2
+            boundaryIDt(ifc,ie) = 2
+          elseif(id_face.eq.30) then
+            cbc(ifc,ie,1) = 'W  '
+            cbc(ifc,ie,2) = 't  '
+            cbc(ifc,ie,3) = 't  '
+            boundaryID(ifc,ie) = 3
+            boundaryIDt(ifc,ie) = 3
+          endif
+        enddo
+      enddo
+
+      do ie=1,nelv
+        do ifc=1,2*ndim
+          if(cbc(ifc,ie,1).eq.'W  ')then
+            CALL FACIND (KX1,KX2,KY1,KY2,KZ1,KZ2,lx1,ly1,lz1,ifc)
+            do iz=kz1,kz2
+              do iy=ky1,ky2
+                do ix=kx1,kx2
+                  xx = xm1(ix,iy,iz,ie)
+                  yy = ym1(ix,iy,iz,ie)
+                  if(xx.gt.0.0 .and. yy.lt.0.0)then
+                    boundaryID(ifc,ie) = 4
+                    boundaryIDt(ifc,ie) = 4
+                  endif
+                enddo
+              enddo
+            enddo
+          endif
+        enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+
+      real ypin,upin,kpin,taupin
+
+      common/ inbc/ uin(lx1,ly1,lz1,lelv),
+     $              kin(lx1,ly1,lz1,lelv), 
+     $              tauin(lx1,ly1,lz1,lelv)
+      real bcin, kin, tauin
+
+      call getInletProf
+
+      do ie=1,nelv
+        do ifc=1,2*ndim
+          if(cbc(ifc,ie,1).eq.'v  ')then
+            CALL FACIND (KX1,KX2,KY1,KY2,KZ1,KZ2,lx1,ly1,lz1,ifc)
+            do iz=kz1,kz2
+              do iy=ky1,ky2
+                do ix=kx1,kx2
+                  ypin = ym1(ix,iy,iz,ie)-1.0
+                  if(ypin.gt.1.0) ypin = 1.0
+                  if(ypin.lt.-1.0) ypin = -1.0
+                  call init_prof(ypin,upin,kpin,taupin)
+                  uin(ix,iy,iz,ie) = upin
+                  kin(ix,iy,iz,ie) = kpin
+                  tauin(ix,iy,iz,ie) = taupin
+                enddo
+              enddo
+            enddo
+          endif
+        enddo
+      enddo
+
+      call nekrs_registerPtr('uin', uin)
+      call nekrs_registerPtr('kin', kin)
+      call nekrs_registerPtr('tauin', tauin)
+            
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine getInletProf
+
+      include 'SPLINE'
+
+      real YY(npts),ZZ(npts)
+
+      if (nid.eq.0) then
+         write(*,'(A,I4)')      'npts  = ', npts
+         write(*,'(A,1pE10.2)') 'ymin = ', ymin
+         write(*,'(A,1pE10.2)') 'ymax = ', ymax
+         write(*,'(A,1pE10.2)') 'ymin_turb = ', ymin_turb
+         write(*,'(A,1pE10.2)') 'ymax_turb = ', ymax_turb
+      endif
+
+C  Read in the 1-D profile computed by turbChan2D
+C        velocity       in fU
+C        kinetic energy in fK
+C        omega          in fO
+
+      open(unit=100,file='InletProf.dat',status='old')
+      read(100, *)     ! skip the header
+      do i=1,npts
+        read(100,*)  YY(i), fU(i), fK(i), fO(i)
+c        write(*,*)  YY(i), fU(i), fK(i), fO(i)
+      enddo
+      close(100)
+
+C  compute spline coefficients for U
+      do i=1,npts
+        ZZ(i)  = fU(i)
+        SYY(i) = YY(i)
+      enddo
+      call spline (npts, YY, ZZ, sbU, scU, sdU)
+
+C  compute spline coefficients for T
+      do i=1,npts
+        ZZ(i) = fK(i)
+      enddo
+      call spline (npts, YY, ZZ, sbK, scK, sdK)
+
+C  compute spline coefficients for species mass fractions
+      do i=1,npts
+        ZZ(i) = fO(i)
+      enddo
+      call spline (npts, YY, ZZ, sbO, scO, sdO)
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine spline (n, x, y, b, c, d)
+
+c  the coefficients b(i), c(i), and d(i), i=1,2,...,n are computed
+c  for a cubic interpolating spline
+c
+c    s(x) = y(i) + b(i)*(x-x(i)) + c(i)*(x-x(i))**2 + d(i)*(x-x(i))**3
+c
+c    for  x(i) .le. x .le. x(i+1)
+c
+c  input.. 
+c
+c    n = the number of data points or knots (n.ge.2)
+c    x = the abscissas of the knots in strictly increasing order
+c    y = the ordinates of the knots
+c
+c  output..
+c
+c    b, c, d  = arrays of spline coefficients as defined above.
+c
+c  using  p  to denote differentiation,
+c
+c    y(i) = s(x(i))
+c    b(i) = sp(x(i))
+c    c(i) = spp(x(i))/2
+c    d(i) = sppp(x(i))/6  (derivative from the right)
+c
+c  the accompanying function subprogram  seval  can be used
+c  to evaluate the spline.
+
+      integer n
+      real x(n), y(n), b(n), c(n), d(n)
+
+      integer nm1, ib, i
+      real t
+
+C      do i = 1, n
+C        if (nid.eq.0) write(41,'(1p2E13.5)') x(i), y(i)
+C      enddo
+C      if (nid.eq.0) write(41,'(A)') '&'
+
+      nm1 = n-1
+      if ( n .lt. 2 ) return
+      if ( n .lt. 3 ) go to 50
+
+c  set up tridiagonal system
+c  b = diagonal, d = offdiagonal, c = right hand side.
+
+      d(1) = x(2) - x(1)
+      c(2) = (y(2) - y(1))/d(1)
+      do 10 i = 2, nm1
+         d(i) = x(i+1) - x(i)
+         b(i) = 2.*(d(i-1) + d(i))
+         c(i+1) = (y(i+1) - y(i))/d(i)
+         c(i) = c(i+1) - c(i)
+   10 continue
+
+c  end conditions.  third derivatives at  x(1)  and  x(n)
+c  obtained from divided differences
+
+      b(1) = -d(1)
+      b(n) = -d(n-1)
+      c(1) = 0.0
+      c(n) = 0.0
+      if ( n .eq. 3 ) go to 15
+      c(1) = c(3)/(x(4)-x(2)) - c(2)/(x(3)-x(1))
+      c(n) = c(n-1)/(x(n)-x(n-2)) - c(n-2)/(x(n-1)-x(n-3))
+      c(1) = c(1)*d(1)**2/(x(4)-x(1))
+      c(n) = -c(n)*d(n-1)**2/(x(n)-x(n-3))
+
+c  forward elimination
+
+   15 do 20 i = 2, n
+         t = d(i-1)/b(i-1)
+         b(i) = b(i) - t*d(i-1)
+         c(i) = c(i) - t*c(i-1)
+   20 continue
+
+c  back substitution
+
+      c(n) = c(n)/b(n)
+      do 30 ib = 1, nm1
+         i = n-ib
+         c(i) = (c(i) - d(i)*c(i+1))/b(i)
+   30 continue
+
+c  c(i) is now the sigma(i) of the text
+c
+c  compute polynomial coefficients
+
+      b(n) = (y(n) - y(nm1))/d(nm1) + d(nm1)*(c(nm1) + 2.*c(n))
+      do 40 i = 1, nm1
+         b(i) = (y(i+1) - y(i))/d(i) - d(i)*(c(i+1) + 2.*c(i))
+         d(i) = (c(i+1) - c(i))/d(i)
+         c(i) = 3.*c(i)
+   40 continue
+      c(n) = 3.0*c(n)
+      d(n) = d(n-1)
+      return
+
+   50 b(1) = (y(2)-y(1))/(x(2)-x(1))
+      c(1) = 0.0
+      d(1) = 0.0
+      b(2) = b(1)
+      c(2) = 0.0
+      d(2) = 0.0
+
+      return
+      end
+c---------------------------------------------------------------------
+      subroutine init_prof(y,Uin,Kin,Oin)
+c
+c Compute temperature + species using cubic splines
+c   f(y) = s(i) + sb(i)*(y-SYY(i)) + sc(i)*(y-SYY(i))**2 + sd(i)*(y-SYY(i))**3
+
+      include 'SPLINE'
+
+      real y, Uin, Kin, Oin
+
+      ii = 0
+      do i=1,npts-1
+        if (y.ge.SYY(i) .and. y.lt.SYY(i+1)) ii=i
+      enddo
+      if(abs(y-SYY(npts)).lt.1e-7) ii=npts
+
+      if (ii.le.0) then
+        write(*,*) 'Error in init_mean: ii= ', ii,'>npts=', npts, y
+        call exitt
+      endif
+
+      Uin=fU(ii) + sbU(ii)*(y-SYY(ii))
+     *     +scU(ii)*(y-SYY(ii))**2+sdU(ii)*(y-SYY(ii))**3
+
+      if (y.ge.SYY(npts)) Uin=fU(npts)
+
+      Kin=fK(ii) + sbK(ii)*(y-SYY(ii))
+     *     +scK(ii)*(y-SYY(ii))**2+sdK(ii)*(y-SYY(ii))**3
+
+      if (y.ge.SYY(npts)) Kin=fK(npts)
+
+      Oin=fO(ii) + sbO(ii)*(y-SYY(ii))
+     *     +scO(ii)*(y-SYY(ii))**2+sdO(ii)*(y-SYY(ii))**3
+
+      if (y.ge.SYY(npts)) Oin=fO(npts)
+
+      return
+      end

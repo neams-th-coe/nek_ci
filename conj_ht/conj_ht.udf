@@ -1,0 +1,167 @@
+#include "ci.inc"
+
+static bool updateProperties = true;
+
+static dfloat P_PECLET;
+static dfloat P_HEAT_SOURCE;
+static dfloat P_SOLID_CONDUCTIVITY_RATIO;
+static dfloat P_SOLID_HEIGHT_RATIO;
+static dfloat P_SOLID_HEAT_CAPACITY_RATIO;
+static dfloat P_VELOCITY_COEFFICIENT;
+
+#ifdef __okl__
+
+#include "conj_ht.oudf"
+
+#endif
+
+void userSource(double time)
+{
+  auto& scalar = nrs->scalar;
+  auto mesh = scalar->mesh("temperature");
+
+  const dfloat qvolFluid = 0.0;
+  const dfloat qvolSolid = P_HEAT_SOURCE;
+
+  cFill(mesh->Nelements, qvolFluid, qvolSolid, mesh->o_elementInfo, scalar->o_explicitTerms("temperature"));
+}
+
+void uservp(double time)
+{
+  auto& fluid = nrs->fluid;
+  auto& scalar = nrs->scalar;
+
+  if (!updateProperties) {
+    return;
+  }
+
+  if (platform->comm.mpiRank() == 0) {
+    std::cout << "updating properties\n";
+  }
+
+  const dfloat rho = 1.0;
+  const dfloat mue = 1.0 / P_PECLET;
+
+  // Velocity properties
+  {
+    const auto o_mue = fluid->o_prop.slice(0 * fluid->fieldOffset);
+    const auto o_rho = fluid->o_prop.slice(1 * fluid->fieldOffset);
+
+    cFill(fluid->mesh->Nelements, mue, 0.0, fluid->mesh->o_elementInfo, o_mue);
+    cFill(fluid->mesh->Nelements, rho, 0.0, fluid->mesh->o_elementInfo, o_rho);
+  }
+
+  // Temperature properties
+  {
+    const dfloat rhoCpFluid = rho;
+    const dfloat conFluid = mue;
+    const dfloat rhoCpSolid = P_SOLID_HEAT_CAPACITY_RATIO * rhoCpFluid;
+    const dfloat conSolid = P_SOLID_CONDUCTIVITY_RATIO * conFluid;
+
+    auto mesh = scalar->mesh("temperature");
+
+    const auto o_con = scalar->o_diffusionCoeff("temperature");
+    const auto o_rhoCp = scalar->o_transportCoeff("temperature");
+
+    cFill(mesh->Nelements, conFluid, conSolid, mesh->o_elementInfo, o_con);
+    cFill(mesh->Nelements, rhoCpFluid, rhoCpSolid, mesh->o_elementInfo, o_rhoCp);
+  }
+
+  updateProperties = false;
+}
+
+void UDF_LoadKernels(deviceKernelProperties& kernelInfo)
+{
+  kernelInfo.define("p_PECLET") = P_PECLET;
+  kernelInfo.define("p_HEAT_SOURCE") = P_HEAT_SOURCE;
+  kernelInfo.define("p_SOLID_CONDUCTIVITY_RATIO") = P_SOLID_CONDUCTIVITY_RATIO;
+  kernelInfo.define("p_SOLID_HEIGHT_RATIO") = P_SOLID_HEIGHT_RATIO;
+  kernelInfo.define("p_SOLID_HEAT_CAPACITY_RATIO") = P_SOLID_HEAT_CAPACITY_RATIO;
+  kernelInfo.define("p_VELOCITY_COEFFICIENT") = P_VELOCITY_COEFFICIENT;
+}
+
+void UDF_Setup0(MPI_Comm comm, setupAide& options)
+{
+  options.getArgs("CI-MODE", ciMode);
+
+  if (ciMode) {
+    ciSetup(comm, options);
+  }
+
+  platform->par->extract("casedata", "p_peclet", P_PECLET);
+  platform->par->extract("casedata", "p_heat_source", P_HEAT_SOURCE);
+  platform->par->extract("casedata", "p_solid_conductivity_ratio", P_SOLID_CONDUCTIVITY_RATIO);
+  platform->par->extract("casedata", "p_solid_height_ratio", P_SOLID_HEIGHT_RATIO);
+  platform->par->extract("casedata", "p_solid_heat_capacity_ratio", P_SOLID_HEAT_CAPACITY_RATIO);
+  platform->par->extract("casedata", "p_velocity_coefficient", P_VELOCITY_COEFFICIENT);
+}
+
+void UDF_Setup()
+{
+  *nek::ptr<double>("p_peclet") = P_PECLET;
+  *nek::ptr<double>("p_heat_source") = P_HEAT_SOURCE;
+  *nek::ptr<double>("p_solid_conductivity_ratio") = P_SOLID_CONDUCTIVITY_RATIO;
+  *nek::ptr<double>("p_solid_height_ratio") = P_SOLID_HEIGHT_RATIO;
+  *nek::ptr<double>("p_solid_heat_capacity_ratio") = P_SOLID_HEAT_CAPACITY_RATIO;
+  *nek::ptr<double>("p_velocity_coefficient") = P_VELOCITY_COEFFICIENT;
+
+  nrs->userProperties = &uservp;
+  nrs->userSource = &userSource;
+
+  if (platform->options.getArgs("RESTART FILE NAME").empty()) {
+    // Initialize velocity using the analytical Poiseuille profile
+    {
+      auto& fluid = nrs->fluid;
+      auto mesh = fluid->mesh;
+
+      auto [x, y, z] = mesh->xyzHost();
+
+      std::vector<dfloat> U(mesh->dim * fluid->fieldOffset, 0.0);
+
+      for (dlong n = 0; n < mesh->Nlocal; ++n) {
+        U[n + 0 * fluid->fieldOffset] = P_VELOCITY_COEFFICIENT * y[n] * (1.0 - y[n]);
+      }
+
+      fluid->o_U.copyFrom(U.data(), U.size());
+    }
+
+    // Initialize temperature using the analytical solution from exact()
+    {
+      auto& scalar = nrs->scalar;
+      auto mesh = scalar->mesh("temperature");
+
+      auto [x, y, z] = mesh->xyzHost();
+
+      std::vector<dfloat> T(mesh->Nlocal, 0.0);
+
+      const dfloat c1 = -P_PECLET * P_HEAT_SOURCE / P_SOLID_CONDUCTIVITY_RATIO;
+      const dfloat c2 = -P_PECLET * P_HEAT_SOURCE * P_SOLID_HEIGHT_RATIO;
+      const dfloat c3 = 2.0 * P_HEAT_SOURCE * P_SOLID_HEIGHT_RATIO;
+      const dfloat c4 = -c2 * 17.0 / 70.0;
+
+      for (dlong n = 0; n < mesh->Nlocal; ++n) {
+        const dfloat xx = x[n];
+        const dfloat yy = y[n];
+
+        if (yy > 1.0) {
+          T[n] = c1 * (0.5 * yy * yy - yy * (1.0 + P_SOLID_HEIGHT_RATIO) + (0.5 + P_SOLID_HEIGHT_RATIO)) + c4 + c3 * xx;
+        } else if (yy < 0.0) {
+          T[n] = c1 * (0.5 * yy * yy + yy * P_SOLID_HEIGHT_RATIO) + c4 + c3 * xx;
+        } else {
+          T[n] = c2 * (yy * yy * yy * yy - 2.0 * yy * yy * yy + yy) + c4 + c3 * xx;
+        }
+      }
+
+      scalar->o_solution("temperature").copyFrom(T.data(), T.size());
+    }
+  }
+}
+
+void UDF_ExecuteStep(double time, int tstep)
+{
+  if (nrs->checkpointStep || nrs->lastStep) {
+    nrs->copyToNek(time, tstep);
+    nek::userchk();
+  }
+}
+

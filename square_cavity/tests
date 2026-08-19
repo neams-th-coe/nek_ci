@@ -3,10 +3,16 @@
     type = CSVDiff
     input = nek.i
     csvdiff = nek_out.csv
-    rel_err=1e-5
-    heavy = true
-    requirement = 'The system shall be able to solve laminar natural convection in 2D square cavity'
+    rel_err = 1e-5
+
     capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekHeatFluxIntegral.md'
+
     min_parallel = 8
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall be able to solve laminar natural convection in 2D square cavity'
   []
 []

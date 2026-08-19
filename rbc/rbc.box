@@ -1,0 +1,14 @@
+-3
+2
+#
+# Rayleigh-Benard convection
+# Domain: 8H x 8H x H
+# Mesh: 16 x 16 x 8 elements
+#
+Box
+-16 -16 -8
+0.0 8.0 1.0
+0.0 8.0 1.0
+0.0 1.0 1.0
+P  ,P  ,P  ,P  ,W  ,W
+P  ,P  ,P  ,P  ,t  ,t

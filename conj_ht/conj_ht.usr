@@ -1,0 +1,182 @@
+c-----------------------------------------------------------------------
+c
+c   The domain consists of two plates of finite thickness (h=0.5)
+c   with plane Poiseuille flow moving between the plates from left
+c   to right (x=0 to 8).
+c
+c   The gap height is 1.0 (y=0 to 1).
+c
+c   The flow inlet temperature is T=0 and the plates are heated
+c   with volumetric heat source, qvol = 1.
+c
+c   Insulated boundary conditions are applied on the solid
+c   surfaces that are not interior to the computational domain,
+c   so heat leaves only through advection at the flow outlet.
+c
+c-----------------------------------------------------------------------
+      subroutine userchk
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+
+      real err(2)
+      save err
+
+      real vxe(lx1,ly1,lz1,lelv)
+      real tempe(lx1,ly1,lz1,lelt)
+
+      integer nv,nt,i
+      real ux,temp
+      real err_inf,err_l2,err_l1
+      real glamax,glsc3,glsc2
+
+      call nekrs_registerPtr('errors',err)
+
+      nv = lx1*ly1*lz1*nelv
+      nt = lx1*ly1*lz1*nelt
+
+      call copy(vxe,vx,nv)
+      call copy(tempe,t,nt)
+
+      do i=1,nt
+        call exact(i,1,1,1,ux,temp)
+        if (i.le.nv) vxe(i,1,1,1) = abs(vxe(i,1,1,1)-ux)
+        tempe(i,1,1,1) = abs(tempe(i,1,1,1)-temp)
+      enddo
+
+c     call outpost(vxe,vy,vz,pr,tempe,'err')
+
+      err_inf = glamax(vxe,nv)
+      err_l1  = glsc2(vxe,bm1,nv)
+      err_l2  = glsc3(vxe,bm1,vxe,nv)
+      err(1)  = sqrt(err_l2)
+
+c     if (nid.eq.0) then
+c       write(6,*) 'inf/L1/L2 error vx:',err_inf,err_l1,sqrt(err_l2)
+c     endif
+
+      err_inf = glamax(tempe,nt)
+      err_l1  = glsc2(tempe,bm1,nt)
+      err_l2  = glsc3(tempe,bm1,tempe,nt)
+      err(2)  = sqrt(err_l2)
+
+c     if (nid.eq.0) then
+c       write(6,*) 'inf/L1/L2 error t:',err_inf,err_l1,sqrt(err_l2)
+c     endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat0
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      include 'CASEDATA'
+
+      call nekrs_registerPtr('p_peclet',p_peclet)
+      call nekrs_registerPtr('p_heat_source',p_heat_source)
+      call nekrs_registerPtr('p_solid_conductivity_ratio',
+     $                       p_solid_conductivity_ratio)
+      call nekrs_registerPtr('p_solid_height_ratio',
+     $                       p_solid_height_ratio)
+      call nekrs_registerPtr('p_solid_heat_capacity_ratio',
+     $                       p_solid_heat_capacity_ratio)
+      call nekrs_registerPtr('p_velocity_coefficient',
+     $                       p_velocity_coefficient)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer iel,ifc
+
+c     Reconstruct velocity boundary tags
+      do iel=1,nelv
+      do ifc=1,2*ndim
+c       Inlet
+        if (cbc(ifc,iel,1).eq.'vf1') boundaryID(ifc,iel) = 1
+c       Outlet
+        if (cbc(ifc,iel,1).eq.'Of1') boundaryID(ifc,iel) = 2
+c       Walls
+        if (cbc(ifc,iel,1).eq.'Wf1') boundaryID(ifc,iel) = 3
+        if (cbc(ifc,iel,1).eq.'Wf2') boundaryID(ifc,iel) = 3
+      enddo
+      enddo
+
+c     Reconstruct temperature boundary tags
+      do iel=1,nelt
+      do ifc=1,2*ndim
+c       Fluid inlet
+        if (cbc(ifc,iel,2).eq.'tf1') boundaryIDt(ifc,iel) = 1
+c       Fluid outlet
+        if (cbc(ifc,iel,2).eq.'ff1') boundaryIDt(ifc,iel) = 2
+c       Upper-solid inlet
+        if (cbc(ifc,iel,2).eq.'tu1') boundaryIDt(ifc,iel) = 3
+c       Upper-solid outlet
+        if (cbc(ifc,iel,2).eq.'tu2') boundaryIDt(ifc,iel) = 4
+c       Lower-solid inlet
+        if (cbc(ifc,iel,2).eq.'tl1') boundaryIDt(ifc,iel) = 5
+c       Lower-solid outlet
+        if (cbc(ifc,iel,2).eq.'tl2') boundaryIDt(ifc,iel) = 6
+c       Exterior upper and lower solid walls
+        if (cbc(ifc,iel,2).eq.'Iu1') boundaryIDt(ifc,iel) = 7
+        if (cbc(ifc,iel,2).eq.'Il1') boundaryIDt(ifc,iel) = 7
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      implicit none
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine exact(ix,iy,iz,e,ux,temp)
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      include 'CASEDATA'
+
+      integer ix,iy,iz,e
+
+      real c1,c2,c3,c4
+      real xx,yy
+      real ux,temp
+
+      xx = xm1(ix,iy,iz,e)
+      yy = ym1(ix,iy,iz,e)
+
+      ux = p_velocity_coefficient*yy*(1.0-yy)
+
+      c1 = -p_peclet*p_heat_source/p_solid_conductivity_ratio
+      c2 = -p_peclet*p_heat_source*p_solid_height_ratio
+      c3 = 2.0*p_heat_source*p_solid_height_ratio
+      c4 = -c2*17.0/70.0
+
+      if (yy.gt.1.0) then
+        temp = c1*(yy**2/2.0-yy*(1.0+p_solid_height_ratio)
+     $       +(0.5+p_solid_height_ratio))+c4+c3*xx
+      elseif (yy.lt.0.0) then
+        temp = c1*(yy**2/2.0+yy*p_solid_height_ratio)+c4+c3*xx
+      else
+        temp = c2*(yy**4-2.0*yy**3+yy)+c4+c3*xx
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+

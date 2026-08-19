@@ -1,0 +1,124 @@
+#include "yp.inc"
+
+static dfloat Ra, Pr;
+
+static bool applyProps = true;
+
+std::unique_ptr<tavg> avg;
+
+#include "ci.inc"
+
+#ifdef __okl__
+
+#include "yp.oudf"
+
+void udfDirichlet(bcData *bc)
+{
+  bc->sScalar = 1.0 - bc->z;
+}
+
+#endif
+
+void buoyancy(double time)
+{
+  auto o_zEXT = nrs->fluid->o_EXT + 2 * nrs->fluid->fieldOffset;
+
+  platform->linAlg->axpby(nrs->meshV->Nlocal,
+                          1.0,
+                          nrs->scalar->o_solution("temperature"),
+                          0.0,
+                          o_zEXT);
+}
+
+void uservp(double time)
+{
+  if(applyProps) {
+    auto mesh = nrs->meshV;
+    auto o_mue = nrs->fluid->o_prop + 0 * nrs->fluid->fieldOffset;
+    auto o_rho = nrs->fluid->o_prop + 1 * nrs->fluid->fieldOffset;
+
+    dfloat rho = 1.0;
+    dfloat mue = sqrt(Pr / Ra);
+
+    platform->linAlg->fill(mesh->Nlocal, mue, o_mue);
+    platform->linAlg->fill(mesh->Nlocal, 1.0, o_rho);
+
+    dfloat rhocp = 1.0;
+    dfloat k = 1.0 / sqrt(Pr * Ra);
+    auto o_k = nrs->scalar->o_prop + 0 * nrs->scalar->fieldOffset();
+    auto o_rhocp = nrs->scalar->o_prop + 1 * nrs->scalar->fieldOffset();
+    platform->linAlg->fill(mesh->Nlocal, k, o_k);
+    platform->linAlg->fill(mesh->Nlocal, 1.0, o_rhocp);
+
+    applyProps = false;
+  }
+}
+
+void UDF_Setup0(MPI_Comm comm, setupAide &options)
+{
+  options.getArgs("CI-MODE", ciMode);
+
+  if (ciMode) {
+    ciSetup(comm, options);
+  }
+}
+
+void UDF_Setup()
+{
+  Ra = 1.7e5;       //Rayleigh Number
+  Pr = 0.7;         //Prandtl Number
+
+  nrs->userSource = &buoyancy;
+  nrs->userProperties = &uservp;
+
+  auto mesh = nrs->meshV;
+
+  auto [x, y, z] = mesh->xyzHost();
+  const dfloat beta = 1.5;
+  for (dlong n = 0; n < mesh->Nlocal; ++n) {
+    const dfloat eta = 2.0 * z[n] - 1.0;
+
+    z[n] = 0.5 * (1.0 + tanh(beta * eta) / tanh(beta));
+  }
+  mesh->o_z.copyFrom(z.data());
+
+  if (platform->options.getArgs("RESTART FILE NAME").empty()) {
+    std::vector<dfloat> U(mesh->dim * nrs->fluid->fieldOffset, 0.0);
+    std::vector<dfloat> temp(mesh->Nlocal, 0.0);
+    auto& scalar = nrs->scalar;
+
+    for(int n = 0; n < mesh->Nlocal; n++) {
+      U[n + 0 * nrs->fluid->fieldOffset] = 0;
+      U[n + 1 * nrs->fluid->fieldOffset] = 0;
+      U[n + 2 * nrs->fluid->fieldOffset] = 0;
+      temp[n] = 1 - z[n];
+    }
+    nrs->fluid->o_U.copyFrom(U.data(), U.size());
+    nrs->scalar->o_solution("temperature").copyFrom(temp.data(), temp.size());
+  }
+
+  if(ciMode) {
+    std::vector< tavg::field > tavgFields;
+    deviceMemory<dfloat> o_w(nrs->scalar->o_U.slice(2 * nrs->fieldOffset , nrs->fieldOffset));
+    deviceMemory<dfloat> o_temp(nrs->scalar->o_solution("temperature"));
+
+    tavgFields.push_back({"wT", std::vector{o_w, o_temp}});
+    avg = std::make_unique<tavg>(nrs->fluid->fieldOffset, tavgFields);
+  }
+}
+
+void UDF_ExecuteStep(double time, int tstep)
+{
+  if (ciMode) {
+    avg->run(time);
+    auto o_wTavg = avg->o_data();
+
+    if(nrs->lastStep) {
+      nrs->scalar->o_solution("wtavg").copyFrom(o_wTavg, nrs->meshV->Nlocal);
+    }
+  }
+
+  if(tstep % 100 == 0) {
+    y_p(time);
+  }
+}

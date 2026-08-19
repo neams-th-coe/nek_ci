@@ -1,0 +1,55 @@
+[Tests]
+  [periodic_hill_k_tau_sst]
+    type = CSVDiff
+    input = nek1.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 1'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekSideIntegral.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the periodic-hill skin friction coefficient using the k-tau SST model and compare it against reference LES data.'
+  []
+
+  [periodic_hill_k_tau_sst_ddes]
+    type = CSVDiff
+    input = nek2.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 2'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekSideIntegral.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the periodic-hill skin friction coefficient using the k-tau SST-DDES model and compare it against reference LES data.'
+  []
+
+  [periodic_hill_k_tau_sst_iddes]
+    type = CSVDiff
+    input = nek3.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 3'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekSideIntegral.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the periodic-hill skin friction coefficient using the k-tau SST-IDDES model and compare it against reference LES data.'
+  []
+[]

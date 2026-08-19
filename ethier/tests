@@ -1,0 +1,235 @@
+[Tests]
+  [ethier_cimode2]
+    type = CSVDiff
+    input = nek2.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 2'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms using a block velocity solver with characteristic subcycling.'
+  []
+
+  [ethier_cimode3]
+    type = CSVDiff
+    input = nek3.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 3'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms using projection initial guesses and the SEMFEM pressure preconditioner.'
+  []
+
+  [ethier_cimode4]
+    type = CSVDiff
+    input = nek4.i
+    csvdiff = nek4_out.csv
+    cli_args = '--nekrs-cimode 4'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms over an extended simulation using a block velocity solver, characteristic subcycling, and projection initial guesses.'
+  []
+
+  [ethier_cimode5]
+    type = CSVDiff
+    input = nek5.i
+    csvdiff = nek5_out.csv
+    cli_args = '--nekrs-cimode 5'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms on a moving mesh using a block velocity solver without characteristic subcycling.'
+  []
+
+  [ethier_cimode6]
+    type = CSVDiff
+    input = nek6.i
+    csvdiff = nek6_out.csv
+    cli_args = '--nekrs-cimode 6'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms on a moving mesh using a block velocity solver with characteristic subcycling.'
+  []
+
+  [ethier_cimode7]
+    type = CSVDiff
+    input = nek7.i
+    csvdiff = nek7_out.csv
+    cli_args = '--nekrs-cimode 7'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms using projection initial guesses and a Jacobi pressure preconditioner.'
+  []
+
+  [ethier_cimode8]
+    type = CSVDiff
+    input = nek8.i
+    csvdiff = nek8_out.csv
+    cli_args = '--nekrs-cimode 8'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms using adaptive time stepping with a prescribed target Courant number.'
+  []
+
+  [ethier_cimode9]
+    type = CSVDiff
+    input = nek9.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 9'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms using convective advection, a block velocity solver, characteristic subcycling, and a projection pressure initial guess.'
+  []
+
+  [ethier_cimode10]
+    type = CSVDiff
+    input = nek10.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 10'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms using convective advection, a block velocity solver, and a projection pressure initial guess.'
+  []
+
+  [ethier_cimode11]
+    type = CSVDiff
+    input = nek11.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 11'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms using a block velocity solver and a Chebyshev-accelerated multigrid pressure smoother.'
+  []
+
+  [ethier_cimode12]
+    type = CSVDiff
+    input = nek12.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 12'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, and passive-scalar error norms with the temperature solver disabled.'
+  []
+
+  [ethier_cimode13]
+    type = CSVDiff
+    input = nek13.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 13'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier passive-scalar error norm in a scalar-only simulation.'
+  []
+
+  [ethier_cimode14]
+    type = CSVDiff
+    input = nek14.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 14'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the Ethier velocity, pressure, temperature, and passive-scalar error norms using a block velocity solver and an additive overlapping Schwarz multigrid pressure smoother.'
+  []
+[]

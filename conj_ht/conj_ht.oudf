@@ -1,0 +1,72 @@
+void udfDirichlet(bcData *bc)
+{
+  const dfloat c1 = -p_PECLET * p_HEAT_SOURCE / p_SOLID_CONDUCTIVITY_RATIO;
+  const dfloat c2 = -p_PECLET * p_HEAT_SOURCE * p_SOLID_HEIGHT_RATIO;
+  const dfloat c4 = -c2 * 17.0 / 70.0;
+
+  if (isField("fluid velocity")) {
+    bc->uxFluid = p_VELOCITY_COEFFICIENT * bc->y * (1.0 - bc->y);
+    bc->uyFluid = 0.0;
+    bc->uzFluid = 0.0;
+  } else if (isField("scalar temperature")) {
+
+    // Fluid inlet
+    if (bc->id == 1) {
+      bc->sScalar = c2 * (bc->y * bc->y * bc->y * bc->y - 2.0 * bc->y * bc->y * bc->y + bc->y) + c4;
+    }
+
+    // Upper solid inlet
+    if (bc->id == 3) {
+      bc->sScalar = c1 * (0.5 * bc->y * bc->y - bc->y * (1.0 + p_SOLID_HEIGHT_RATIO) + (0.5 + p_SOLID_HEIGHT_RATIO)) + c4;
+    }
+
+    // Lower solid inlet
+    if (bc->id == 5) {
+      bc->sScalar = c1 * (0.5 * bc->y * bc->y + bc->y * p_SOLID_HEIGHT_RATIO) + c4;
+    }
+  }
+}
+
+void udfNeumann(bcData *bc)
+{
+  const dfloat c3 = 2.0 * p_HEAT_SOURCE * p_SOLID_HEIGHT_RATIO;
+
+  if (isField("scalar temperature")) {
+
+    // Fluid outlet
+    if (bc->id == 2) {
+      bc->fluxScalar = c3 / p_PECLET;
+    }
+
+    // Upper solid outlet
+    if (bc->id == 4) {
+      bc->fluxScalar = c3 * p_SOLID_CONDUCTIVITY_RATIO / p_PECLET;
+    }
+
+    // Lower solid outlet
+    if (bc->id == 6) {
+      bc->fluxScalar = c3 * p_SOLID_CONDUCTIVITY_RATIO / p_PECLET;
+    }
+
+    // Exterior insulated solid walls
+    if (bc->id == 7) {
+      bc->fluxScalar = 0.0;
+    }
+  }
+}
+
+@kernel void cFill(const dlong Nelements,
+                   const dfloat CONST1,
+                   const dfloat CONST2,
+                   @ restrict const dlong *eInfo,
+                   @ restrict dfloat *field)
+{
+  for (dlong e = 0; e < Nelements; ++e; @outer(0)) {
+    const dlong solid = eInfo[e];
+
+    for (int n = 0; n < p_Np; ++n; @inner(0)) {
+      const dlong id = e * p_Np + n;
+      field[id] = solid ? CONST2 : CONST1;
+    }
+  }
+}

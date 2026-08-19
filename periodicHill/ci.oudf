@@ -1,0 +1,51 @@
+@kernel void cfErrKernel(const dlong Nelements,
+                         const int nbID,
+                         @ restrict const int *bID,
+                         @ restrict const dlong *vmapM,
+                         @ restrict const int *EToB,
+                         @ restrict const dfloat *X,
+                         @ restrict const dfloat *TAUW,
+                         const int nRef,
+                         const dfloat xmin,
+                         const dfloat xmax,
+                         @ restrict const dfloat *cfRef,
+                         @ restrict dfloat *CFERR)
+{
+  for (dlong e = 0; e < Nelements; ++e; @outer(0)) {
+    for (int f = 0; f < p_Nfaces; ++f) {
+      const int bcType = EToB[f + p_Nfaces * e];
+
+      for (int ibID = 0; ibID < nbID; ++ibID) {
+        if (bcType == bID[ibID]) {
+          for (int m = 0; m < p_Nfp; ++m; @inner(0)) {
+            const int n = m + f * p_Nfp;
+            const int sk = e * p_Nfaces * p_Nfp + n;
+            const dlong idM = vmapM[sk];
+
+            dfloat coordinate = (X[idM] - xmin) * (nRef - 1) / (xmax - xmin);
+
+            if (coordinate < 0.0) {
+              coordinate = 0.0;
+            }
+
+            if (coordinate > nRef - 1) {
+              coordinate = nRef - 1;
+            }
+
+            int i0 = (int) floor(coordinate);
+
+            if (i0 > nRef - 2) {
+              i0 = nRef - 2;
+            }
+
+            const int i1 = i0 + 1;
+            const dfloat alpha = coordinate - i0;
+            const dfloat cfReference = (1.0 - alpha) * cfRef[i0] + alpha * cfRef[i1];
+
+            CFERR[idM] = fabs(2.0 * TAUW[idM] - cfReference);
+          }
+        }
+      }
+    }
+  }
+}

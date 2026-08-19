@@ -1,0 +1,83 @@
+void udfDirichlet(bcData *bc)
+{
+  if (bc->id == 1) {
+    bc->uxFluid = bc->usrwrk[bc->idxVol + 0 * bc->fieldOffset];
+    bc->uyFluid = 0.0;
+    bc->uzFluid = 0.0;
+    if(isField("scalar k")) bc->sScalar = bc->usrwrk[bc->idxVol + 1 * bc->fieldOffset];
+    if(isField("scalar tau")) bc->sScalar = bc->usrwrk[bc->idxVol + 2 * bc->fieldOffset];
+  } else {
+    bc->sScalar = 0.0;
+  }
+}
+
+dfloat expCf(dfloat x)
+{
+  const dfloat xexp = x * 4.0; 
+
+  const dfloat dlength = 6.279; //re-attachment length from experiment
+
+  const dfloat x2 = xexp * xexp;
+  const dfloat x3 = xexp * x2;
+
+  dfloat Cf = 0.0;
+
+  if(xexp <= dlength){
+    const dfloat a = 3.25493918e-05;
+    const dfloat b = -2.34015638e-04;
+    const dfloat c = 1.72854745e-04;
+    const dfloat d = 8.31484029e-05;
+
+    Cf = a * x3 + b * x2 + c * xexp + d;
+  } 
+  else {
+    const dfloat a = 2.09224533e-09;
+    const dfloat b = -2.39683817e-07;
+    const dfloat c = 1.06908128e-05;
+    const dfloat d = -2.32660572e-04;
+    const dfloat e = 2.49784334e-03;
+    const dfloat f = -8.80553891e-03;
+
+    const dfloat x4 = x3 * xexp;
+    const dfloat x5 = x4 * xexp;
+
+    Cf = a * x5 + b * x4 + c * x3 + d * x2 + e * xexp + f;
+  }
+
+  return Cf;
+}
+
+@kernel void cfErrKernel(const dlong Nelements,
+                         const int nbID,
+                         @ restrict int *bID,
+                         @ restrict const dlong *vmapM,
+                         @ restrict const int *EToB,
+                         @ restrict const dfloat *X,
+                         @ restrict const dfloat *TAUW,
+                         @ restrict dfloat *CFERR)
+{
+  for (dlong e = 0; e < Nelements; e++; @outer(0)) {
+    for (int f = 0; f < p_Nfaces; f++) {
+      const dlong bcType = EToB[f + p_Nfaces * e];
+
+      for (int ibID = 0; ibID < nbID; ibID++) {
+        if(bcType == bID[ibID]) {
+          for (int m = 0; m < p_Nfp; ++m; @inner(0)) {
+            const int n = m + f * p_Nfp;
+            const int sk = e * p_Nfp * p_Nfaces + n;
+            const dlong idM = vmapM[sk];
+
+            const dfloat x = X[idM];
+            CFERR[idM] = 0.0;
+            if(x < 8.0) {
+              const dfloat cfExp = expCf(x);
+              const dfloat cf = 2.0 * TAUW[idM];
+              CFERR[idM] = fabs(cf - cfExp);
+            }
+          }
+          @barrier;
+        }
+      }
+    }
+  }
+}

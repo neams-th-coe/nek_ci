@@ -1,0 +1,37 @@
+[Tests]
+  [channel_cimode1]
+    type = CSVDiff
+    input = nek.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 1 P_ROT='0.0''
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the velocity error norms for the manufactured channel-flow solution on an unrotated mesh.'
+  []
+
+  [channel_cimode2]
+    type = CSVDiff
+    input = nek.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 2 P_ROT='pi/4''
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeNorm.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the velocity error norms for the manufactured channel-flow solution on a rotated mesh.'
+  []
+[]

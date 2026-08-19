@@ -1,0 +1,91 @@
+[Tests]
+  [mv_cyl_cimode1]
+    type = CSVDiff
+    input = nek1.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 1'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeAverage.md NekVolumeIntegral.md NekSideIntegral.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the average temperature, volume, thermodynamic pressure, and thermodynamic-pressure time derivative for an isentropically compressing and expanding cylinder using prescribed mesh motion.'
+  []
+
+  [mv_cyl_cimode2]
+    type = CSVDiff
+    input = nek2.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 2'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeAverage.md NekVolumeIntegral.md NekSideIntegral.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the average temperature, volume, thermodynamic pressure, and thermodynamic-pressure time derivative for an isentropically compressing and expanding cylinder using characteristic subcycling.'
+  []
+
+  [mv_cyl_cimode3]
+    type = CSVDiff
+    input = nek3.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 3'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeAverage.md NekVolumeIntegral.md NekSideIntegral.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the average temperature, volume, thermodynamic pressure, and thermodynamic-pressure time derivative for an isentropically compressing and expanding cylinder using characteristic subcycling and a projection-initialized mesh-velocity solver.'
+  []
+
+  [mv_cyl_cimode5]
+    type = CSVDiff
+    input = nek5.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 5'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeAverage.md NekVolumeIntegral.md NekSideIntegral.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the average temperature, volume, thermodynamic pressure, and thermodynamic-pressure time derivative for a rotated, isentropically compressing and expanding cylinder using prescribed mesh motion.'
+  []
+
+  [mv_cyl_cimode6]
+    type = CSVDiff
+    input = nek6.i
+    csvdiff = nek_out.csv
+    cli_args = '--nekrs-cimode 6'
+
+    capabilities = 'nekrs'
+    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeAverage.md NekVolumeIntegral.md NekSideIntegral.md'
+
+    max_parallel = 20
+    max_time = 900
+    heavy = true
+
+    issues = '#950'
+
+    requirement = 'The system shall compute the average temperature, volume, thermodynamic pressure, and thermodynamic-pressure time derivative for a rotated, isentropically compressing and expanding cylinder using a projection-initialized mesh-velocity solver.'
+  []
+[]
