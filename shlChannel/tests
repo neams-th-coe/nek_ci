@@ -1,9 +1,9 @@
 [Tests]
   [shl_channel_cimode1]
     type = CSVDiff
-    input = nek1.i
+    input = nek.i
     csvdiff = nek_out.csv
-    cli_args = '--nekrs-cimode 1 P_ROT='0.0''
+    cli_args = '--nekrs-cimode 1 P_ROT=0.0'
 
     capabilities = 'nekrs'
     design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeNorm.md'
@@ -19,9 +19,9 @@
 
   [shl_channel_cimode2]
     type = CSVDiff
-    input = nek2.i
+    input = nek.i
     csvdiff = nek_out.csv
-    cli_args = '--nekrs-cimode 2 P_ROT='pi/4''
+    cli_args = '--nekrs-cimode 2 P_ROT="pi/4"'
 
     capabilities = 'nekrs'
     design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeNorm.md'
