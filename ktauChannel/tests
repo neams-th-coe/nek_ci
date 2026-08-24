@@ -1,5 +1,5 @@
 [Tests]
-  [ktau_channel_nonDimensional]
+  [ktauChannel_nonDimensional]
     type = CSVDiff
     input = nek1.i
     csvdiff = nek1_out.csv
@@ -17,7 +17,7 @@
     requirement = 'The system shall compute the wall shear stress for non-dimensional turbulent channel flow using the k-tau RANS model and compare it against the reference value.'
   []
 
-  [ktau_channel_dimensional]
+  [ktauChannel_dimensional]
     type = CSVDiff
     input = nek2.i
     csvdiff = nek2_out.csv
