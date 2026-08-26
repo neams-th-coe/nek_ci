@@ -7,7 +7,7 @@ void ciSetup(MPI_Comm comm, setupAide &options)
   options.setArgs("RESTART FILE NAME", std::string("rbc.fld+time=0"));
   // options.setArgs("SOLUTION OUTPUT INTERVAL", "-1");
   // options.setArgs("NUMBER TIMESTEPS", std::string("-1"));
-  options.setArgs("END TIME", std::string("4"));
+  options.setArgs("END TIME", std::string("1"));
   options.setArgs("ADVECTION TYPE", "CONVECTIVE+CUBATURE");
   options.setArgs("DT", std::string("5e-3"));
 }

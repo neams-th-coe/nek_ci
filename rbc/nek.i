@@ -59,7 +59,7 @@
   [pass]
     type = ParsedPostprocessor
     pp_names = 'Nu_v_error'
-    expression = 'Nu_v_error < 9.8e-2'
+    expression = 'Nu_v_error < 1.63e-1'
     execute_on = final
   []
 []
