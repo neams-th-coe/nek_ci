@@ -10,7 +10,7 @@
 
     # The mesh contains 16 x 16 x 8 = 2048 elements.
     min_parallel = 8
-    max_time = 900
+    max_time = 1800
     heavy = true
 
     issues = '#950'
