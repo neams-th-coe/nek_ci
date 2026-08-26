@@ -9,7 +9,7 @@
     design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md'
 
     # The mesh contains 16 x 16 x 8 = 2048 elements.
-    max_parallel = 8
+    min_parallel = 8
     max_time = 900
     heavy = true
 

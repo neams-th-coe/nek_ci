@@ -8,7 +8,7 @@
     capabilities = 'nekrs'
     design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekSideIntegral.md'
 
-    max_parallel = 20
+    min_parallel = 8
     max_time = 900
     heavy = true
 
@@ -26,7 +26,7 @@
     capabilities = 'nekrs'
     design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekSideIntegral.md'
 
-    max_parallel = 20
+    min_parallel = 8
     max_time = 900
     heavy = true
 
@@ -44,7 +44,7 @@
     capabilities = 'nekrs'
     design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekSideIntegral.md'
 
-    max_parallel = 20
+    min_parallel = 8
     max_time = 900
     heavy = true
 
