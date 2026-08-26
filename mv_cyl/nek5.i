@@ -54,11 +54,6 @@ REF_TEMP_ERROR    = 0.4929804E-06
 TERMV_ABS_TOL = 1.0E-11
 
 [Functions]
-  [unitFunction]
-    type = ParsedFunction
-    expression = '1.0'
-  []
-
   [areap]
     type = ParsedFunction
     expression = '${XLEN} * ${ZLEN}'
@@ -138,7 +133,6 @@ TERMV_ABS_TOL = 1.0E-11
   [volume]
     type = NekVolumeIntegral
     field = unity
-    function = unitFunction
     execute_on = final
   []
 
