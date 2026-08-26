@@ -16,6 +16,5 @@
     issues = '#950'
 
     requirement = 'The system shall compute the time-averaged volumetric Nusselt number for Rayleigh-Benard convection and compare it against the reference value.'
-    required_objects = 'NekRSProblem'
   []
 []
