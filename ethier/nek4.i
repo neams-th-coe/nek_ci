@@ -45,10 +45,6 @@ TOL    = 1.00E-11
 
 
 [Functions]
-  [unitFunction]
-    type = ParsedFunction
-    expression = '1.0'
-  []
   [uexact]
     type = ParsedFunction
     expression = '-${a} * (ex * syz + ez * cxy) * e2t + ${P_U0}'
@@ -57,7 +53,7 @@ TOL    = 1.00E-11
   []
   [pexact]
     type = ParsedFunction
-    expression = '-0.5 * ${a} * ${a} * e2t * e2t * (ex * ex + 2.0 * sxy * czx * eyz
+    expression = '0.5 * ${a} * ${a} * e2t * e2t * (ex * ex + 2.0 * sxy * czx * eyz
                                               +ey * ey + 2.0 * syz * cxy * ezx
                                               +ez * ez + 2.0 * szx * cyz * exy)'
     symbol_names = 'e2t ex ey ez sxy syz szx cxy cyz czx exy eyz ezx'
@@ -65,7 +61,7 @@ TOL    = 1.00E-11
   []
   [pexactScaled]
     type = ParsedFunction
-    expression = 'pexact + pscale'
+    expression = 'pscale - pexact'
     symbol_names = 'pexact pscale'
     symbol_values = 'pexact pscale'
   []
@@ -168,7 +164,6 @@ TOL    = 1.00E-11
   [volume]
     type = NekVolumeIntegral
     field = unity
-    function = unitFunction
     execute_on = final
   []
   [pbar]
@@ -178,7 +173,7 @@ TOL    = 1.00E-11
   []
   [pbre]
     type = NekVolumeIntegral
-    field = unity
+    field = zero
     function = pexact
     execute_on = final
   []
