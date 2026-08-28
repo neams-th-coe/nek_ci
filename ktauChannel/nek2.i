@@ -6,7 +6,7 @@ utauRef = ${fparse 4.58794e-2 * velScale}
 
 [Mesh]
   type = NekRSMesh
-  volume = true
+  boundary = '1'
 []
 
 [Problem]

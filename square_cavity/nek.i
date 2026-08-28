@@ -2,7 +2,7 @@ mesh_width = 0.0193145
 
 [Mesh]
   type = NekRSMesh
-  volume = true
+  boundary = '1'
 []
 
 [Problem]
