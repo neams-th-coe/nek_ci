@@ -1,19 +1,15 @@
 [Tests]
+  design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekViscousSurfaceForce.md NekSideIntegral.md'
+  issues = '#950'
   [ktau_channel_nonDimensional]
     type = CSVDiff
     input = nek1.i
     csvdiff = nek1_out.csv
     cli_args = '--nekrs-cimode 1'
-
     capabilities = 'nekrs'
-    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekViscousSurfaceForce.md NekSideIntegral.md'
-
     max_parallel = 10
     max_time = 900
     heavy = true
-
-    issues = '#950'
-
     requirement = 'The system shall compute the wall shear stress for non-dimensional turbulent channel flow using the k-tau RANS model and compare it against the reference value.'
   []
 
@@ -22,16 +18,10 @@
     input = nek2.i
     csvdiff = nek2_out.csv
     cli_args = '--nekrs-cimode 2'
-
     capabilities = 'nekrs'
-    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekViscousSurfaceForce.md NekSideIntegral.md'
-
     max_parallel = 10
     max_time = 900
     heavy = true
-
-    issues = '#950'
-
     requirement = 'The system shall compute the wall shear stress for dimensional turbulent channel flow using the k-tau RANS model and compare it against the reference value.'
   []
 []

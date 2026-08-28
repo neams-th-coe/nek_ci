@@ -10,7 +10,9 @@
 
     min_parallel = 8
     max_time = 900
-    min_slots = 2 # memory heavy
+    # ~7500 MB, gives about 680/slot; number of slots must be larger than
+    # number of ranks to be in effect
+    min_slots = 11
     heavy = true
 
     issues = '#950'

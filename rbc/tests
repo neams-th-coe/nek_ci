@@ -1,20 +1,16 @@
 [Tests]
+  design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md'
+  issues = '#950'
   [rbc]
     type = CSVDiff
     input = nek.i
     csvdiff = nek_out.csv
     cli_args = '--nekrs-cimode 1'
-
     capabilities = 'nekrs'
-    design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md'
-
     # The mesh contains 16 x 16 x 8 = 2048 elements.
     min_parallel = 8
     max_time = 1800
     heavy = true
-
-    issues = '#950'
-
     requirement = 'The system shall compute the time-averaged volumetric Nusselt number for Rayleigh-Benard convection and compare it against the reference value.'
   []
 []
