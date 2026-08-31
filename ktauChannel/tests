@@ -1,6 +1,7 @@
 [Tests]
   design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekViscousSurfaceForce.md NekSideIntegral.md'
   issues = '#950'
+  verification = 'ktauChannel.md'
   [ktau_channel_nonDimensional]
     type = CSVDiff
     input = nek1.i

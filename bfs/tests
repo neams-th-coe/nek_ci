@@ -15,5 +15,7 @@
     issues = '#950'
 
     requirement = 'The system shall compute the backward-facing-step skin-friction coefficient and compare it against reference experimental data.'
+
+    verification = 'bfs.md'
   []
 []

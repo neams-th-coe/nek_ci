@@ -1,6 +1,7 @@
 [Tests]
   design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekSideIntegral.md'
   issues = '#950'
+  verification = 'periodicHill.md'
   [periodic_hill_k_tau_sst]
     type = CSVDiff
     input = nek1.i

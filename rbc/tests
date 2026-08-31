@@ -1,6 +1,7 @@
 [Tests]
   design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md'
   issues = '#950'
+  verification = 'rbc.md'
   [rbc]
     type = CSVDiff
     input = nek.i

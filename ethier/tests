@@ -1,6 +1,7 @@
 [Tests]
   design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeIntegral.md NekVolumeNorm.md'
   issues = '#950'
+  verification = 'ethier.md'
   [ethier_cimode2]
     type = CSVDiff
     input = nek2.i
