@@ -14,5 +14,6 @@
     issues = '#950'
 
     requirement = 'The system shall be able to solve laminar natural convection in 2D square cavity'
+    verification = 'square_cavity_natural_convection.md'
   []
 []

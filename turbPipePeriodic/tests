@@ -18,5 +18,6 @@
     issues = '#950'
 
     requirement = 'The system shall compute the friction velocity for fully developed turbulent flow in a periodic pipe and compare it against reference data.'
+    verification = 'turbPipePeriodic.md'
   []
 []

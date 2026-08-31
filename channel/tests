@@ -1,6 +1,7 @@
 [Tests]
   design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeNorm.md'
   issues = '#950'
+  verification = 'channel.md'
   [channel_cimode1]
     type = CSVDiff
     input = nek.i
