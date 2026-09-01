@@ -1,7 +1,7 @@
 [Tests]
   design = 'NekRSProblem.md NekRSMesh.md NekTimeStepper.md NekVolumeAverage.md NekVolumeIntegral.md NekSideIntegral.md'
   issues = '#950'
-  verification = 'my_cyl.md'
+  verification = 'mv_cyl.md'
   [mv_cyl_cimode1]
     type = CSVDiff
     input = nek1.i
