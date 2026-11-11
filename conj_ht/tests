@@ -12,6 +12,7 @@
     max_time = 900
     heavy = true
     requirement = 'The system shall compute the velocity and temperature error norms for the manufactured conjugate heat-transfer solution without characteristic subcycling.'
+    min_slots = 2 # 630 MB per slot observed during https://civet.inl.gov/job/4364967/ during step Test --heavy found in recipe file ./recipes/moosebuild/cardinal/Test_nekrs.cfg. Usage is over or within 100 MB of the total memory limit based on a 700 MB per slot limit.
   []
 
   [conj_ht_cimode2]
